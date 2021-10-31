@@ -1,0 +1,147 @@
+.remotetypebox::content {
+  margin-top: auto;
+  margin-bottom: auto;
+  font-family: rucksack, sans-serif;
+  font-weight: 700;
+  font-style: normal;
+}
+
+#toprow {
+  height: 100%;
+  vertical-align: middle;
+}
+
+#lowstockErrorcontent {
+  text-align: center;
+  margin-top: 5px;
+}
+
+.addnoteStyle {
+  font-family: rucksack, sans-serif;
+  font-weight: 700;
+  font-style: normal;
+}
+
+.carnotes {
+  font-family: brandon-grotesque, sans-serif;
+  font-weight: 400;
+  font-style: italic;
+  padding-bottom: 5px;
+  font-size: 15px;
+}
+
+ion-card {
+  box-shadow: 1px 1px 5px 0px rgba(84, 6, 156, 0.315);
+  border-radius: 10px;
+}
+
+#usernameID {
+  font-size: 13px;
+  font-family: futura-pt, sans-serif;
+  font-weight: 700;
+  font-style: normal;
+}
+
+#cardetails {
+  border-style: solid;
+}
+
+.remotetypeh1 {
+  text-align: end;
+}
+
+.primarytext {
+  font-family: futura-pt, sans-serif;
+  font-weight: 700;
+  font-style: normal;
+}
+
+.fontsize {
+  font-size: 30px;
+}
+
+#carnameID {
+  font-family: futura-pt, sans-serif;
+  font-weight: 700;
+  font-style: normal;
+  font-size: 15px;
+}
+
+#addnoteButtonID {
+  font-family: futura-pt, sans-serif;
+  font-weight: 700;
+  font-style: normal;
+}
+
+#spaecialnotesheaderID {
+  font-size: 13px;
+  color: red;
+}
+
+.specialOfferTiles {
+  width: 100%;
+}
+
+.ion-nowrap {
+  flex-wrap: nowrap;
+  overflow-x: scroll !important;
+  overflow-y: hidden;
+}
+#remotesTitleID {
+  font-size: 20px;
+  font-family: futura-pt, sans-serif;
+  font-weight: 700;
+  font-style: normal;
+}
+
+.saveTag {
+  font-family: futura-pt, sans-serif;
+  font-weight: 700;
+  font-style: normal;
+  font-size: 15px;
+}
+
+#boxnumberID {
+  font-size: 30px;
+  font-family: futura-pt, sans-serif;
+  font-weight: 700;
+  font-style: normal;
+}
+
+
+#itemCardID {
+  margin-right: 15px;
+  margin-left: 15px;
+}
+
+#tookNumberID {
+  font-size: 45px;
+  font-family: futura-pt, sans-serif;
+  font-weight: 700;
+  font-style: normal;
+  margin-top: 60px;
+}
+
+.tookDivClass {
+  text-align: end;
+}
+.timeClass {
+  font-family: futura-pt, sans-serif;
+  font-weight: 700;
+  font-style: normal;
+  font-size: 15px;
+}
+
+
+#inputItemID {
+  margin-left: 10px;
+  margin-right: 10px;
+}
+
+
+#leftNumberID {
+  font-size: 30px;
+  font-family: futura-pt, sans-serif;
+  font-weight: 700;
+  font-style: normal;
+}

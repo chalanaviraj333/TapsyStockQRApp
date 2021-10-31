@@ -1,0 +1,8 @@
+{
+  "name": "StorageApp",
+  "integrations": {
+    "cordova": {},
+    "capacitor": {}
+  },
+  "type": "angular"
+}
