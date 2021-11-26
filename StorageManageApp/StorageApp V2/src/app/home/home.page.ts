@@ -6,6 +6,8 @@ import { NativeRingtones } from '@ionic-native/native-ringtones/ngx';
 import { Storage } from '@capacitor/storage';
 import { AlertController } from '@ionic/angular';
 import { TextToSpeech } from '@ionic-native/text-to-speech/ngx';
+import { OrderDetail } from '../order-detail';
+import { Remoteorder } from '../remoteorder';
 
 @Component({
   selector: 'app-home',
@@ -14,8 +16,12 @@ import { TextToSpeech } from '@ionic-native/text-to-speech/ngx';
 })
 export class HomePage implements OnInit {
   private selectedProduct: any = {};
-  private allProducts: Array<any> = [];
+  private allProducts: Array<Remote> = [];
   public itemsTookList: Array<DisplayItems> = [];
+  private orderList: Array<OrderDetail> = [];
+  private updateRemoteQuantityTimer = null;
+  private updateRemoteDatabaseHttpTimer = null;
+  private updateOrderDetailsHttpTimer = null;
 
   constructor(
     private http: HttpClient,
@@ -45,6 +51,14 @@ export class HomePage implements OnInit {
       });
     });
 
+    this.getAllOrders();
+    this.getAllRemotes();
+
+  }
+
+  // get all remotes
+  getAllRemotes() {
+    this.allProducts = [];
 
     this.http
       .get<{ [key: string]: Remote }>(
@@ -57,6 +71,7 @@ export class HomePage implements OnInit {
               key,
               tapsycode: resData[key].tapsycode,
               boxnumber: resData[key].boxnumber,
+              shell: resData[key].shell,
               qtyavailable: resData[key].qtyavailable,
               inbuildchip: resData[key].inbuildchip,
               inbuildblade: resData[key].inbuildblade,
@@ -77,6 +92,30 @@ export class HomePage implements OnInit {
       });
   }
 
+  // get orderedList from database
+  getAllOrders() {
+    this.orderList = [];
+
+    this.http
+      .get<{ [key: string]: OrderDetail }>(
+        'https://tapsystock-a6450-default-rtdb.firebaseio.com/all-orders.json'
+      )
+      .subscribe((resData) => {
+        for (const key in resData) {
+          if (resData.hasOwnProperty(key)) {
+            this.orderList.push({
+              key,
+              year: resData[key].year,
+              month: resData[key].month,
+              remoteList: resData[key].remoteList,
+              remoteshelllist: resData[key].remoteshelllist
+
+            })
+          }
+        }
+      });
+  }
+
   setTookArrayToLocalStorage(itemsTookList: Array<DisplayItems>) {
     const data = JSON.stringify(itemsTookList);
     Storage.set({
@@ -85,20 +124,124 @@ export class HomePage implements OnInit {
     });
   }
 
+  UploadOrderList(oneTimeOrderList: Array<Remoteorder>) {
+
+    const currentMonth: number = new Date().getMonth() + 1;
+    const currentYear: number = new Date().getFullYear();
+
+    const monthOrderList: OrderDetail = this.orderList.find(
+      (orderItems) => orderItems.month === currentMonth && orderItems.year == currentYear
+    );
+
+    console.log(monthOrderList);
+
+    if (monthOrderList == undefined) {
+
+      const newMonthDetails: OrderDetail = {
+        key: null,
+        year: new Date().getFullYear(),
+        month: new Date().getMonth() + 1,
+        remoteList: oneTimeOrderList,
+        remoteshelllist: []
+      }
+      // send http request for this month first enterance with oneTimeOrderList
+      this.http
+          .post(
+            'https://tapsystock-a6450-default-rtdb.firebaseio.com/all-orders.json',
+            newMonthDetails
+          )
+          .subscribe((resData) => {
+            // refreash the orderlist
+            if (resData !== undefined) {
+              if(this.updateOrderDetailsHttpTimer != null) {
+                clearTimeout(this.updateOrderDetailsHttpTimer);
+                this.updateOrderDetailsHttpTimer = null;
+              }
+
+              this.updateOrderDetailsHttpTimer = setTimeout(() => this.getAllOrders(), 5000)
+            }
+          });
+    }
+    else {
+      const currentRemoteList: Array<Remoteorder> = monthOrderList.remoteList;
+
+      oneTimeOrderList.forEach(orderdItem => {
+        const iteminarray: Remoteorder = currentRemoteList.find((orderInArray) => orderInArray.tapsycode === orderdItem.tapsycode);
+
+        if (iteminarray == undefined) {
+          currentRemoteList.push(orderdItem);
+
+          // put request to database
+          this.http
+          .put(
+            `https://tapsystock-a6450-default-rtdb.firebaseio.com/all-orders/${monthOrderList.key}.json`,
+            { ...monthOrderList, remoteList: currentRemoteList, key: null }
+          )
+          .subscribe((resData) => {
+            // refreash the orderlist
+            if (resData !== undefined) {
+              if(this.updateOrderDetailsHttpTimer != null) {
+                clearTimeout(this.updateOrderDetailsHttpTimer);
+                this.updateOrderDetailsHttpTimer = null;
+              }
+
+              this.updateOrderDetailsHttpTimer = setTimeout(() => this.getAllOrders(), 5000)
+            }
+          });
+        }
+        else {
+          const index = currentRemoteList.indexOf(iteminarray);
+          currentRemoteList[index].quantity = currentRemoteList[index].quantity + orderdItem.quantity;
+
+          // put request to database
+          this.http
+          .put(
+            `https://tapsystock-a6450-default-rtdb.firebaseio.com/all-orders/${monthOrderList.key}.json`,
+            { ...monthOrderList, remoteList: currentRemoteList, key: null }
+          )
+          .subscribe((resData) => {
+            // refreash the orderlist
+            if (resData !== undefined) {
+              if(this.updateOrderDetailsHttpTimer != null) {
+                clearTimeout(this.updateOrderDetailsHttpTimer);
+                this.updateOrderDetailsHttpTimer = null;
+              }
+
+              this.updateOrderDetailsHttpTimer = setTimeout(() => this.getAllOrders(), 5000)
+            }
+          });
+        }
+      });
+
+    }
+  }
+
   sendDataToDatabase() {
+
+    const oneTimeOrderList: Array<Remoteorder> = [];
+
     this.itemsTookList.forEach((item) => {
       if (item.productType == 'remote') {
         const currentItem: Remote = this.allProducts.find(
           (remote) => remote.tapsycode === item.tapsycode
         );
 
-        // this.http
-        //   .post(
-        //     'https://tapsystock-a6450-default-rtdb.firebaseio.com/item-orders.json',
-        //     { ...item, image: null, numberofTook: null, key: null }
-        //   )
-        //   .subscribe((resData) => {
-        //   });
+        if (oneTimeOrderList.length == 0) {
+          oneTimeOrderList.push({tapsycode: item.tapsycode, quantity: 1});
+        }
+        else {
+          const findmonthfromarray: Remoteorder = oneTimeOrderList.find(
+            (order) => order.tapsycode === item.tapsycode
+          )
+
+          if (findmonthfromarray == undefined) {
+            oneTimeOrderList.push({tapsycode: item.tapsycode, quantity: 1});
+          }
+          else {
+            const index = oneTimeOrderList.indexOf(findmonthfromarray);
+            oneTimeOrderList[index].quantity++;
+          }
+        }
 
         this.http
           .put(
@@ -112,14 +255,27 @@ export class HomePage implements OnInit {
                 this.itemsTookList.splice(index, 1);
                 this.setTookArrayToLocalStorage(this.itemsTookList);
               }
+
+              if(this.updateRemoteDatabaseHttpTimer != null) {
+                clearTimeout(this.updateRemoteDatabaseHttpTimer);
+                this.updateRemoteDatabaseHttpTimer = null;
+              }
+
+              this.updateRemoteDatabaseHttpTimer = setTimeout(() => this.getAllRemotes(), 100000);
+
             }
           });
+
+
       } else {
       }
     });
+
+    this.UploadOrderList(oneTimeOrderList);
   }
 
   async onCLickUpload() {
+
     if (this.itemsTookList.length != 0) {
       const alert = await this.alertController.create({
         cssClass: 'my-custom-class',
@@ -129,7 +285,7 @@ export class HomePage implements OnInit {
           {
             text: 'Yes',
             handler: () => {
-              // this.sendDataToDatabase();
+              this.sendDataToDatabase();
             },
           },
           {
@@ -150,7 +306,17 @@ export class HomePage implements OnInit {
     let searchItemArray: Array<any> = [];
     const enteredTapsyCode: string = event.target.value;
 
-    // setTimeout(() => this.sendDataToDatabase(), 100000);
+    if(this.updateRemoteQuantityTimer != null) {
+      clearTimeout(this.updateRemoteQuantityTimer);
+      this.updateRemoteQuantityTimer = null;
+    }
+
+    if(this.updateRemoteDatabaseHttpTimer != null) {
+      clearTimeout(this.updateRemoteDatabaseHttpTimer);
+      this.updateRemoteDatabaseHttpTimer = null;
+    }
+
+    this.updateRemoteQuantityTimer = setTimeout(() => this.sendDataToDatabase(), 10000);
 
     if (enteredTapsyCode && enteredTapsyCode.trim() != '') {
       searchItemArray = this.allProducts.filter((product) => {
